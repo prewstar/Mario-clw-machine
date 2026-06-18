@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mario Plushie Claw Machine</title>
+    <title>Mario Plushie Claw Machine & Mini-Game</title>
     <style>
         body {
             background-color: #222;
@@ -19,9 +19,10 @@
         }
 
         h1 {
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             color: #e52521;
             text-shadow: 2px 2px #fbd000;
+            margin-top: 0;
         }
 
         #instructions {
@@ -29,6 +30,7 @@
             font-size: 14px;
             color: #ddd;
             text-align: center;
+            height: 20px;
         }
 
         #scoreboard {
@@ -53,27 +55,49 @@
             overflow: hidden;
         }
 
-        /* Glass Viewing Area */
-        #glass-area {
+        /* Glass Viewing Screen Area */
+        #screen-container {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 480px;
-            background: linear-gradient(to bottom, #111 0%, #1a2a4a 100%);
             border-bottom: 8px solid #1c3366;
+            overflow: hidden;
         }
 
-        /* Reflections on glass */
-        #glass-area::after {
+        /* Screen 1: The Claw Machine View */
+        #claw-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #111 0%, #1a2a4a 100%);
+            display: block;
+        }
+
+        /* Screen 2: Donkey Kong Mini Game View */
+        #minigame-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            display: none; /* Controlled by JS */
+        }
+
+        #glass-area-sheen::after {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 50%);
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 50%);
             pointer-events: none;
+            z-index: 20;
         }
 
-        /* Prize Chute / Bin */
+        /* Claw Machine Elements */
         #chute {
             position: absolute;
             bottom: 0;
@@ -98,7 +122,6 @@
             z-index: 2;
         }
 
-        /* The Crane Mechanism */
         #rail {
             position: absolute;
             top: 20px;
@@ -142,7 +165,6 @@
             z-index: 6;
         }
 
-        /* Claw Left/Right pieces */
         .claw-part {
             position: absolute;
             top: 0;
@@ -154,34 +176,17 @@
             transform-origin: top center;
             transition: transform 0.3s ease;
         }
-        #claw-left {
-            left: 4px;
-            transform: rotate(-15deg);
-        }
-        #claw-right {
-            right: 4px;
-            transform: rotate(15deg);
-        }
+        #claw-left { left: 4px; transform: rotate(-15deg); }
+        #claw-right { right: 4px; transform: rotate(15deg); }
         #claw-base {
             position: absolute;
-            top: 0;
-            left: 7px;
-            width: 16px;
-            height: 8px;
-            background-color: #e52521;
-            border: 2px solid #333;
-            border-radius: 2px;
+            top: 0; left: 7px; width: 16px; height: 8px;
+            background-color: #e52521; border: 2px solid #333; border-radius: 2px;
         }
 
-        /* Closed Claw Animation States */
-        .claw-closed #claw-left {
-            transform: rotate(20deg);
-        }
-        .claw-closed #claw-right {
-            transform: rotate(-20deg);
-        }
+        .claw-closed #claw-left { transform: rotate(20deg); }
+        .claw-closed #claw-right { transform: rotate(-20deg); }
 
-        /* Local Individual Plushies styling */
         .plushie {
             position: absolute;
             width: 55px;
@@ -190,8 +195,52 @@
             background-repeat: no-repeat;
             background-position: center;
             z-index: 3;
-            /* Simple CSS filter to give a slight 3D shadow look on the pile */
             filter: drop-shadow(2px 4px 3px rgba(0,0,0,0.4));
+        }
+
+        /* Mini-Game Elements */
+        .platform {
+            position: absolute;
+            height: 12px;
+            background-color: #e52521;
+            border-top: 3px solid #ff7b78;
+            box-sizing: border-box;
+        }
+
+        #dk-mario {
+            position: absolute;
+            width: 16px;
+            height: 24px;
+            background-color: #e52521; /* Mario Red Box */
+            border: 2px solid #fbd000; /* Yellow overalls accent */
+            box-sizing: border-box;
+        }
+
+        #dk-boss {
+            position: absolute;
+            top: 45px;
+            left: 40px;
+            width: 50px;
+            height: 45px;
+            background-color: #663300; /* Donkey Kong Brown Box */
+            border: 3px solid #ff9933;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: #fff;
+        }
+
+        .barrel {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background-color: #d28541; /* Barrel Wood Brown */
+            border: 2px dashed #5c330e;
+            border-radius: 50%;
+            box-sizing: border-box;
         }
 
         /* Lower Control Panel Graphic */
@@ -252,21 +301,31 @@
     <div id="scoreboard">Score: <span id="score">0</span></div>
 
     <div id="machine">
-        <div id="glass-area">
-            <div id="rail"></div>
-            <div id="trolley"></div>
-            <div id="string"></div>
+        <div id="screen-container" id="glass-area-sheen">
             
-            <div id="claw">
-                <div id="claw-base"></div>
-                <div id="claw-left" class="claw-part"></div>
-                <div id="claw-right" class="claw-part"></div>
+            <div id="claw-view">
+                <div id="rail"></div>
+                <div id="trolley"></div>
+                <div id="string"></div>
+                
+                <div id="claw">
+                    <div id="claw-base"></div>
+                    <div id="claw-left" class="claw-part"></div>
+                    <div id="claw-right" class="claw-part"></div>
+                </div>
+
+                <div id="chute"></div>
+                <div id="chute-wall"></div>
+                <div id="plushies-container"></div>
             </div>
 
-            <div id="chute"></div>
-            <div id="chute-wall"></div>
+            <div id="minigame-view">
+                <div id="dk-boss">DK</div>
+                <div id="dk-mario"></div>
+                <div id="mg-platforms"></div>
+                <div id="mg-barrels"></div>
+            </div>
 
-            <div id="plushies-container"></div>
         </div>
 
         <div id="control-panel">
@@ -280,29 +339,41 @@
     </div>
 
     <script>
+        // DOM Elements
+        const instructions = document.getElementById('instructions');
+        const clawView = document.getElementById('claw-view');
+        const minigameView = document.getElementById('minigame-view');
+        const scoreDisplay = document.getElementById('score');
+        const stick = document.getElementById('stick');
+
+        // Claw view elements
         const trolley = document.getElementById('trolley');
         const string = document.getElementById('string');
         const claw = document.getElementById('claw');
         const container = document.getElementById('plushies-container');
-        const scoreDisplay = document.getElementById('score');
-        const stick = document.getElementById('stick');
 
-        // Game Settings & Coordinates
+        // Mini-game elements
+        const mgMario = document.getElementById('dk-mario');
+        const platformContainer = document.getElementById('mg-platforms');
+        const barrelContainer = document.getElementById('mg-barrels');
+
+        // Global Game States
         let score = 0;
+        let activeMode = "claw"; // "claw" or "minigame"
+        let keys = {};
+
+        // Claw Machine Config Variables
         let clawX = 225;
         let clawY = 62;
-        let clawState = "idle"; // idle, dropping, grabbing, retracting, returning, dropping_prize
-        const minX = 115; // Boundaries so claw clears the chute wall
+        let clawState = "idle"; 
+        const minX = 115;
         const maxX = 445;
-        const homeX = 45;  // Drop-off point over the prize chute
-        const groundY = 405; // Bottom floor height
+        const homeX = 45;  
+        const groundY = 405; 
         const ceilingY = 62;
-
-        let keys = {};
         let plushies = [];
         let grabbedPlushie = null;
 
-        // List of your 20 local image names
         const plushieImages = [
             "plush1.png", "plush2.png", "plush3.png", "plush4.png", "plush5.png",
             "plush6.png", "plush7.png", "plush8.png", "plush9.png", "plush10.png",
@@ -310,9 +381,26 @@
             "plush16.png", "plush17.png", "plush18.png", "plush19.png", "plush20.png"
         ];
 
-        // Track user key input
+        // Mini Game State Variables
+        let marioX = 240;
+        let marioY = 430;
+        let marioVy = 0;
+        let marioIsJumping = false;
+        let barrels = [];
+        let spawnBarrelTimer = 0;
+
+        // Static Custom Platform Configurations (x, y, width)
+        const platforms = [
+            { x: 0, y: 460, w: 500 },   // Floor
+            { x: 0, y: 370, w: 400 },   // Mid-low level
+            { x: 100, y: 280, w: 400 },  // Mid level
+            { x: 0, y: 190, w: 380 },   // Mid-high level
+            { x: 120, y: 100, w: 260 }   // Top level (DK platform)
+        ];
+
+        // Input Trackers
         window.addEventListener('keydown', e => { 
-            if(["ArrowLeft", "ArrowRight", "ArrowDown"].includes(e.key)) e.preventDefault();
+            if(["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp"].includes(e.key)) e.preventDefault();
             keys[e.key] = true; 
         });
         window.addEventListener('keyup', e => { 
@@ -320,21 +408,15 @@
             stick.style.transform = "rotate(0deg)";
         });
 
-        // Generate a random pile of plushies at the bottom using your images
+        // Setup Claw Machine Plushies
         function spawnPlushies() {
             container.innerHTML = "";
             plushies = [];
-            
-            // Spawn 15 plushies selected randomly from your pool of 20 images
             for (let i = 0; i < 15; i++) {
                 const plushie = document.createElement('div');
                 plushie.className = 'plushie';
-                
-                // Spread across floor nicely (leaving space for the prize chute on left)
                 const x = 125 + Math.random() * 310;
                 const y = groundY + 10 - (Math.random() * 25); 
-                
-                // Pick a random image filename from the list
                 const randomImage = plushieImages[Math.floor(Math.random() * plushieImages.length)];
                 
                 plushie.style.left = x + 'px';
@@ -342,19 +424,68 @@
                 plushie.style.backgroundImage = `url('${randomImage}')`;
                 
                 container.appendChild(plushie);
-                plushies.push({
-                    element: plushie,
-                    x: x,
-                    y: y,
-                    width: 55,
-                    height: 55
-                });
+                plushies.push({ element: plushie, x: x, y: y, width: 55, height: 55 });
             }
         }
 
-        // Main game frame update loop
+        // Initialize Mini-Game Layout
+        function buildMiniGameLayout() {
+            platformContainer.innerHTML = "";
+            platforms.forEach(p => {
+                const plat = document.createElement('div');
+                plat.className = 'platform';
+                plat.style.left = p.x + 'px';
+                plat.style.top = p.y + 'px';
+                plat.style.width = p.w + 'px';
+                platformContainer.appendChild(plat);
+            });
+        }
+
+        function startMiniGame() {
+            activeMode = "minigame";
+            clawView.style.display = "none";
+            minigameView.style.display = "block";
+            instructions.innerHTML = "🔴 <b>MINI-GAME!</b> ⬅️ ➡️ to run, ⬆️ to Jump over Barrels! Reach the top!";
+            
+            // Reset Mario starting position at bottom floor
+            marioX = 30;
+            marioY = 460 - 24; 
+            marioVy = 0;
+            marioIsJumping = false;
+            
+            barrels = [];
+            barrelContainer.innerHTML = "";
+            spawnBarrelTimer = 0;
+            buildMiniGameLayout();
+        }
+
+        function endMiniGame(won) {
+            activeMode = "claw";
+            minigameView.style.display = "none";
+            clawView.style.display = "block";
+            instructions.innerHTML = "Use ⬅️ ➡️ Arrow Keys to move. Press ⬇️ Arrow Key to drop the claw!";
+            
+            if (won) {
+                score += 5; // Reward bonus points
+                scoreDisplay.innerText = score;
+                alert("You beat Donkey Kong! Earning +5 Bonus Points!");
+            }
+            // Clear out keys so inputs don't carry over
+            keys = {};
+        }
+
+        // Primary Core Loop
         function update() {
-            // Update physical positions of CSS assets
+            if (activeMode === "claw") {
+                runClawMachineLogic();
+            } else {
+                runMiniGameLogic();
+            }
+            requestAnimationFrame(update);
+        }
+
+        // --- GAME SYSTEM 1: CLAW ---
+        function runClawMachineLogic() {
             trolley.style.left = (clawX - 24) + 'px';
             string.style.left = (clawX) + 'px';
             string.style.height = (clawY - 32) + 'px';
@@ -368,7 +499,6 @@
                 grabbedPlushie.element.style.top = grabbedPlushie.y + 'px';
             }
 
-            // State Machine for Claw Actions
             switch (clawState) {
                 case "idle":
                     claw.classList.remove('claw-closed');
@@ -379,34 +509,23 @@
                         clawX += 3;
                         stick.style.transform = "rotate(20deg)";
                     }
-                    if (keys['ArrowDown']) {
-                        clawState = "dropping";
-                    }
+                    if (keys['ArrowDown']) clawState = "dropping";
                     break;
 
                 case "dropping":
                     clawY += 4;
                     let hitPlushie = null;
                     for (let p of plushies) {
-                        // Collision bounding box logic
                         if (clawX > p.x && clawX < p.x + p.width && (clawY + 30) >= p.y && (clawY + 30) <= p.y + 15) {
                             hitPlushie = p;
                             break;
                         }
                     }
-
                     if (hitPlushie || clawY >= groundY) {
                         clawState = "grabbing";
                         claw.classList.add('claw-closed');
-                        
-                        // 75% Win chance to keep it on the claw hook!
-                        if (hitPlushie && Math.random() < 0.75) {
-                            grabbedPlushie = hitPlushie;
-                        }
-                        
-                        setTimeout(() => {
-                            clawState = "retracting";
-                        }, 600);
+                        if (hitPlushie && Math.random() < 0.75) grabbedPlushie = hitPlushie;
+                        setTimeout(() => { clawState = "retracting"; }, 600);
                     }
                     break;
 
@@ -429,12 +548,10 @@
 
                 case "dropping_prize":
                     claw.classList.remove('claw-closed');
-                    
                     if (grabbedPlushie) {
                         let p = grabbedPlushie;
                         grabbedPlushie = null;
                         
-                        // Prize drop animation
                         let dropInterval = setInterval(() => {
                             p.y += 5;
                             p.element.style.top = p.y + 'px';
@@ -442,26 +559,147 @@
                                 clearInterval(dropInterval);
                                 p.element.remove();
                                 plushies = plushies.filter(item => item !== p);
+                                
+                                // Score update and check for minigame condition
                                 score += 1;
                                 scoreDisplay.innerText = score;
                                 
-                                if (plushies.length === 0) {
-                                    spawnPlushies();
+                                if (plushies.length === 0) spawnPlushies();
+                                
+                                // Intercept and jump into mini game every 5 plushies collected
+                                if (score > 0 && score % 5 === 0) {
+                                    setTimeout(() => { startMiniGame(); }, 1000);
                                 }
                             }
                         }, 20);
                     }
-                    
-                    setTimeout(() => {
-                        clawState = "idle";
-                    }, 800);
+                    setTimeout(() => { clawState = "idle"; }, 800);
                     break;
             }
-
-            requestAnimationFrame(update);
         }
 
-        // Initialize Setup
+        // --- GAME SYSTEM 2: MARIO VS DONKEY KONG ---
+        function runMiniGameLogic() {
+            // Apply horizontal movement 
+            if (keys['ArrowLeft']) {
+                marioX -= 2.5;
+                stick.style.transform = "rotate(-20deg)";
+            } else if (keys['ArrowRight']) {
+                marioX += 2.5;
+                stick.style.transform = "rotate(20deg)";
+            }
+
+            // Boundary constraints
+            if (marioX < 0) marioX = 0;
+            if (marioX > 484) marioX = 484;
+
+            // Apply gravity mechanics
+            marioVy += 0.4; // gravity strength
+            marioY += marioVy;
+
+            // Jump handling
+            if (keys['ArrowUp'] && !marioIsJumping) {
+                marioVy = -7.5; // Jump strength force
+                marioIsJumping = true;
+            }
+
+            // Floor collision test loops
+            let onPlatform = false;
+            let currentFootY = marioY + 24;
+
+            for (let p of platforms) {
+                // Check if Mario is over a platform horizontally, and passing through it vertically downwards
+                if (marioX + 16 > p.x && marioX < p.x + p.w) {
+                    if (currentFootY >= p.y && currentFootY - marioVy <= p.y + 10) {
+                        marioY = p.y - 24;
+                        marioVy = 0;
+                        marioIsJumping = false;
+                        onPlatform = true;
+                        break;
+                    }
+                }
+            }
+
+            // Render Mario's box location
+            mgMario.style.left = marioX + 'px';
+            mgMario.style.top = marioY + 'px';
+
+            // Check Win condition: Did Mario reach DK's top level zone?
+            if (marioY <= 100 && marioX >= 120 && marioX <= 380) {
+                endMiniGame(true);
+                return;
+            }
+
+            // Handle spawning random rolling barrels
+            spawnBarrelTimer++;
+            if (spawnBarrelTimer > 110) { // Time cadence between barrel throws
+                spawnBarrelTimer = 0;
+                
+                // Track standard barrel properties
+                // Barrels spawn by DK at the top and roll down platform by platform
+                const barrelElement = document.createElement('div');
+                barrelElement.className = 'barrel';
+                barrelContainer.appendChild(barrelElement);
+
+                barrels.push({
+                    element: barrelElement,
+                    x: 130,
+                    y: 86,
+                    currentPlatIdx: 4, // Starts on top platform index
+                    direction: 1       // 1 = Right, -1 = Left
+                });
+            }
+
+            // Update & move active barrels
+            for (let i = barrels.length - 1; i >= 0; i--) {
+                let b = barrels[i];
+                let currentPlat = platforms[b.currentPlatIdx];
+
+                // Roll horizontally
+                b.x += (2 * b.direction);
+                b.y = currentPlat.y - 14; // Snap to the current platform floor
+
+                // Update visual position
+                b.element.style.left = b.x + 'px';
+                b.element.style.top = b.y + 'px';
+
+                // Check if barrel rolls off the platform edges to drop down a level
+                if (b.direction === 1 && b.x > currentPlat.x + currentPlat.w) {
+                    // Falls off right edge
+                    if (b.currentPlatIdx > 0) {
+                        b.currentPlatIdx--;
+                        b.direction = -1; // Change rolling directions on drop
+                        b.y = platforms[b.currentPlatIdx].y - 14;
+                    } else {
+                        // Off the map entirely, purge element
+                        b.element.remove();
+                        barrels.splice(i, 1);
+                        continue;
+                    }
+                } else if (b.direction === -1 && b.x < currentPlat.x) {
+                    // Falls off left edge
+                    if (b.currentPlatIdx > 0) {
+                        b.currentPlatIdx--;
+                        b.direction = 1; // Reverse rolling direction
+                        b.y = platforms[b.currentPlatIdx].y - 14;
+                    } else {
+                        b.element.remove();
+                        barrels.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                // Collision detection checks: Barrel vs Mario
+                if (b.x + 14 > marioX && b.x < marioX + 16 && b.y + 14 > marioY && b.y < marioY + 24) {
+                    alert("Ouch! Hit by a barrel! Back to the bottom floor!");
+                    marioX = 30;
+                    marioY = 460 - 24;
+                    marioVy = 0;
+                }
+            }
+        }
+
+        // Initialize setup loops on load
         spawnPlushies();
         update();
     </script>
