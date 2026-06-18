@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mario Plushie Claw Machine</title>
+    <style>
+        body {
+            background-color: #222;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            color: #e52521;
+            text-shadow: 2px 2px #fbd000;
+        }
+
+        #instructions {
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #ddd;
+            text-align: center;
+        }
+
+        #scoreboard {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            background: #333;
+            padding: 5px 15px;
+            border-radius: 5px;
+            border: 2px solid #fbd000;
+        }
+
+        /* The Game Arcade Cabinet */
+        #machine {
+            position: relative;
+            width: 500px;
+            height: 600px;
+            background-color: #4370db;
+            border: 10px solid #1c3366;
+            border-radius: 10px;
+            box-shadow: 0px 10px 20px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+
+        /* Glass Viewing Area */
+        #glass-area {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 480px;
+            background: linear-gradient(to bottom, #111 0%, #1a2a4a 100%);
+            border-bottom: 8px solid #1c3366;
+        }
+
+        /* Reflections on glass */
+        #glass-area::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 50%);
+            pointer-events: none;
+        }
+
+        /* Prize Chute / Bin */
+        #chute {
+            position: absolute;
+            bottom: 0;
+            left: 15px;
+            width: 90px;
+            height: 100px;
+            background-color: #111;
+            border: 4px solid #555;
+            border-bottom: none;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            z-index: 2;
+        }
+
+        #chute-wall {
+            position: absolute;
+            bottom: 0;
+            left: 109px;
+            width: 6px;
+            height: 130px;
+            background-color: #666;
+            z-index: 2;
+        }
+
+        /* The Crane Mechanism */
+        #rail {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: #888;
+            border-bottom: 2px solid #555;
+            z-index: 5;
+        }
+
+        #trolley {
+            position: absolute;
+            top: 16px;
+            left: 200px;
+            width: 50px;
+            height: 16px;
+            background-color: #fbd000;
+            border: 2px solid #333;
+            border-radius: 3px;
+            z-index: 6;
+            transition: left 0.05s linear;
+        }
+
+        #string {
+            position: absolute;
+            top: 32px;
+            left: 224px;
+            width: 2px;
+            height: 30px;
+            background-color: #fff;
+            z-index: 5;
+        }
+
+        #claw {
+            position: absolute;
+            top: 62px;
+            left: 210px;
+            width: 30px;
+            height: 30px;
+            z-index: 6;
+        }
+
+        /* Claw Left/Right pieces */
+        .claw-part {
+            position: absolute;
+            top: 0;
+            width: 6px;
+            height: 25px;
+            background-color: #d1d1d1;
+            border: 2px solid #444;
+            border-radius: 5px;
+            transform-origin: top center;
+            transition: transform 0.3s ease;
+        }
+        #claw-left {
+            left: 4px;
+            transform: rotate(-15deg);
+        }
+        #claw-right {
+            right: 4px;
+            transform: rotate(15deg);
+        }
+        #claw-base {
+            position: absolute;
+            top: 0;
+            left: 7px;
+            width: 16px;
+            height: 8px;
+            background-color: #e52521;
+            border: 2px solid #333;
+            border-radius: 2px;
+        }
+
+        /* Closed Claw Animation States */
+        .claw-closed #claw-left {
+            transform: rotate(20deg);
+        }
+        .claw-closed #claw-right {
+            transform: rotate(-20deg);
+        }
+
+        /* Local Individual Plushies styling */
+        .plushie {
+            position: absolute;
+            width: 55px;
+            height: 55px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 3;
+            /* Simple CSS filter to give a slight 3D shadow look on the pile */
+            filter: drop-shadow(2px 4px 3px rgba(0,0,0,0.4));
+        }
+
+        /* Lower Control Panel Graphic */
+        #control-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 120px;
+            background-color: #e52521;
+            z-index: 10;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 5px solid #b01b18;
+        }
+
+        .joystick-base {
+            width: 60px;
+            height: 20px;
+            background: #333;
+            border-radius: 5px;
+            position: relative;
+        }
+        .joystick-stick {
+            width: 8px;
+            height: 40px;
+            background: #aaa;
+            position: absolute;
+            bottom: 10px;
+            left: 26px;
+            transform-origin: bottom center;
+        }
+        .joystick-knob {
+            width: 22px;
+            height: 22px;
+            background: #00a230;
+            border-radius: 50%;
+            position: absolute;
+            top: -15px;
+            left: -7px;
+        }
+
+        .big-button {
+            width: 50px;
+            height: 50px;
+            background-color: #fbd000;
+            border-radius: 50%;
+            border: 4px solid #b89900;
+            box-shadow: 0 4px #967d00;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>MARIO PLUSHIE CLAW CRANE</h1>
+    <div id="instructions">Use ⬅️ ➡️ Arrow Keys to move. Press ⬇️ Arrow Key to drop the claw!</div>
+    <div id="scoreboard">Score: <span id="score">0</span></div>
+
+    <div id="machine">
+        <div id="glass-area">
+            <div id="rail"></div>
+            <div id="trolley"></div>
+            <div id="string"></div>
+            
+            <div id="claw">
+                <div id="claw-base"></div>
+                <div id="claw-left" class="claw-part"></div>
+                <div id="claw-right" class="claw-part"></div>
+            </div>
+
+            <div id="chute"></div>
+            <div id="chute-wall"></div>
+
+            <div id="plushies-container"></div>
+        </div>
+
+        <div id="control-panel">
+            <div class="joystick-base">
+                <div class="joystick-stick" id="stick">
+                    <div class="joystick-knob"></div>
+                </div>
+            </div>
+            <div class="big-button"></div>
+        </div>
+    </div>
+
+    <script>
+        const trolley = document.getElementById('trolley');
+        const string = document.getElementById('string');
+        const claw = document.getElementById('claw');
+        const container = document.getElementById('plushies-container');
+        const scoreDisplay = document.getElementById('score');
+        const stick = document.getElementById('stick');
+
+        // Game Settings & Coordinates
+        let score = 0;
+        let clawX = 225;
+        let clawY = 62;
+        let clawState = "idle"; // idle, dropping, grabbing, retracting, returning, dropping_prize
+        const minX = 115; // Boundaries so claw clears the chute wall
+        const maxX = 445;
+        const homeX = 45;  // Drop-off point over the prize chute
+        const groundY = 405; // Bottom floor height
+        const ceilingY = 62;
+
+        let keys = {};
+        let plushies = [];
+        let grabbedPlushie = null;
+
+        // List of your 20 local image names
+        const plushieImages = [
+            "plush1.png", "plush2.png", "plush3.png", "plush4.png", "plush5.png",
+            "plush6.png", "plush7.png", "plush8.png", "plush9.png", "plush10.png",
+            "plush11.png", "plush12.png", "plush13.png", "plush14.png", "plush15.png",
+            "plush16.png", "plush17.png", "plush18.png", "plush19.png", "plush20.png"
+        ];
+
+        // Track user key input
+        window.addEventListener('keydown', e => { 
+            if(["ArrowLeft", "ArrowRight", "ArrowDown"].includes(e.key)) e.preventDefault();
+            keys[e.key] = true; 
+        });
+        window.addEventListener('keyup', e => { 
+            keys[e.key] = false; 
+            stick.style.transform = "rotate(0deg)";
+        });
+
+        // Generate a random pile of plushies at the bottom using your images
+        function spawnPlushies() {
+            container.innerHTML = "";
+            plushies = [];
+            
+            // Spawn 15 plushies selected randomly from your pool of 20 images
+            for (let i = 0; i < 15; i++) {
+                const plushie = document.createElement('div');
+                plushie.className = 'plushie';
+                
+                // Spread across floor nicely (leaving space for the prize chute on left)
+                const x = 125 + Math.random() * 310;
+                const y = groundY + 10 - (Math.random() * 25); 
+                
+                // Pick a random image filename from the list
+                const randomImage = plushieImages[Math.floor(Math.random() * plushieImages.length)];
+                
+                plushie.style.left = x + 'px';
+                plushie.style.top = y + 'px';
+                plushie.style.backgroundImage = `url('${randomImage}')`;
+                
+                container.appendChild(plushie);
+                plushies.push({
+                    element: plushie,
+                    x: x,
+                    y: y,
+                    width: 55,
+                    height: 55
+                });
+            }
+        }
+
+        // Main game frame update loop
+        function update() {
+            // Update physical positions of CSS assets
+            trolley.style.left = (clawX - 24) + 'px';
+            string.style.left = (clawX) + 'px';
+            string.style.height = (clawY - 32) + 'px';
+            claw.style.left = (clawX - 15) + 'px';
+            claw.style.top = clawY + 'px';
+
+            if (grabbedPlushie) {
+                grabbedPlushie.x = clawX - 12;
+                grabbedPlushie.y = clawY + 20;
+                grabbedPlushie.element.style.left = grabbedPlushie.x + 'px';
+                grabbedPlushie.element.style.top = grabbedPlushie.y + 'px';
+            }
+
+            // State Machine for Claw Actions
+            switch (clawState) {
+                case "idle":
+                    claw.classList.remove('claw-closed');
+                    if (keys['ArrowLeft'] && clawX > minX) {
+                        clawX -= 3;
+                        stick.style.transform = "rotate(-20deg)";
+                    } else if (keys['ArrowRight'] && clawX < maxX) {
+                        clawX += 3;
+                        stick.style.transform = "rotate(20deg)";
+                    }
+                    if (keys['ArrowDown']) {
+                        clawState = "dropping";
+                    }
+                    break;
+
+                case "dropping":
+                    clawY += 4;
+                    let hitPlushie = null;
+                    for (let p of plushies) {
+                        // Collision bounding box logic
+                        if (clawX > p.x && clawX < p.x + p.width && (clawY + 30) >= p.y && (clawY + 30) <= p.y + 15) {
+                            hitPlushie = p;
+                            break;
+                        }
+                    }
+
+                    if (hitPlushie || clawY >= groundY) {
+                        clawState = "grabbing";
+                        claw.classList.add('claw-closed');
+                        
+                        // 75% Win chance to keep it on the claw hook!
+                        if (hitPlushie && Math.random() < 0.75) {
+                            grabbedPlushie = hitPlushie;
+                        }
+                        
+                        setTimeout(() => {
+                            clawState = "retracting";
+                        }, 600);
+                    }
+                    break;
+
+                case "retracting":
+                    clawY -= 3;
+                    if (clawY <= ceilingY) {
+                        clawY = ceilingY;
+                        clawState = "returning";
+                    }
+                    break;
+
+                case "returning":
+                    if (clawX > homeX) {
+                        clawX -= 3;
+                    } else {
+                        clawX = homeX;
+                        clawState = "dropping_prize";
+                    }
+                    break;
+
+                case "dropping_prize":
+                    claw.classList.remove('claw-closed');
+                    
+                    if (grabbedPlushie) {
+                        let p = grabbedPlushie;
+                        grabbedPlushie = null;
+                        
+                        // Prize drop animation
+                        let dropInterval = setInterval(() => {
+                            p.y += 5;
+                            p.element.style.top = p.y + 'px';
+                            if (p.y >= groundY + 50) {
+                                clearInterval(dropInterval);
+                                p.element.remove();
+                                plushies = plushies.filter(item => item !== p);
+                                score += 1;
+                                scoreDisplay.innerText = score;
+                                
+                                if (plushies.length === 0) {
+                                    spawnPlushies();
+                                }
+                            }
+                        }, 20);
+                    }
+                    
+                    setTimeout(() => {
+                        clawState = "idle";
+                    }, 800);
+                    break;
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        // Initialize Setup
+        spawnPlushies();
+        update();
+    </script>
+</body>
+</html>
