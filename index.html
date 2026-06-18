@@ -297,7 +297,7 @@
 <body>
 
     <h1>MARIO PLUSHIE CLAW CRANE</h1>
-    <div id="instructions">Use ⬅️ ➡️ Arrow Keys to move. Press ⬇️ Arrow Key to drop the claw!</div>
+    <div id="instructions">Use A & D Keys to move. Press S Key to drop the claw!</div>
     <div id="scoreboard">Score: <span id="score">0</span></div>
 
     <div id="machine">
@@ -398,16 +398,17 @@
             { x: 120, y: 100, w: 260 }   
         ];
 
-        // FIX: Added ArrowUp to preventDefault to stop the window from fighting the jump logic
+        // Map both lowercase and uppercase variations just in case caps lock is on
         window.addEventListener('keydown', e => { 
-            if(["ArrowLeft", "ArrowRight", "ArrowDown", "ArrowUp"].includes(e.key)) {
-                e.preventDefault();
-            }
-            keys[e.key] = true; 
+            let key = e.key.toLowerCase();
+            keys[key] = true; 
         });
         window.addEventListener('keyup', e => { 
-            keys[e.key] = false; 
-            stick.style.transform = "rotate(0deg)";
+            let key = e.key.toLowerCase();
+            keys[key] = false; 
+            if (key === 'a' || key === 'd') {
+                stick.style.transform = "rotate(0deg)";
+            }
         });
 
         // Setup Claw Machine Plushies
@@ -447,7 +448,7 @@
             activeMode = "minigame";
             clawView.style.display = "none";
             minigameView.style.display = "block";
-            instructions.innerHTML = "🔴 <b>MINI-GAME!</b> ⬅️ ➡️ to run, ⬆️ to Jump over Barrels! Reach the top!";
+            instructions.innerHTML = "🔴 <b>MINI-GAME!</b> A & D to run, <b>W to Jump</b> over Barrels! Reach the top!";
             
             marioX = 30;
             marioY = 460 - 24; 
@@ -464,7 +465,7 @@
             activeMode = "claw";
             minigameView.style.display = "none";
             clawView.style.display = "block";
-            instructions.innerHTML = "Use ⬅️ ➡️ Arrow Keys to move. Press ⬇️ Arrow Key to drop the claw!";
+            instructions.innerHTML = "Use A & D Keys to move. Press S Key to drop the claw!";
             
             if (won) {
                 score += 5; 
@@ -502,14 +503,14 @@
             switch (clawState) {
                 case "idle":
                     claw.classList.remove('claw-closed');
-                    if (keys['ArrowLeft'] && clawX > minX) {
+                    if (keys['a'] && clawX > minX) {
                         clawX -= 3;
                         stick.style.transform = "rotate(-20deg)";
-                    } else if (keys['ArrowRight'] && clawX < maxX) {
+                    } else if (keys['d'] && clawX < maxX) {
                         clawX += 3;
                         stick.style.transform = "rotate(20deg)";
                     }
-                    if (keys['ArrowDown']) clawState = "dropping";
+                    if (keys['s']) clawState = "dropping";
                     break;
 
                 case "dropping":
@@ -578,10 +579,10 @@
 
         // --- GAME SYSTEM 2: MARIO VS DONKEY KONG ---
         function runMiniGameLogic() {
-            if (keys['ArrowLeft']) {
+            if (keys['a']) {
                 marioX -= 2.5;
                 stick.style.transform = "rotate(-20deg)";
-            } else if (keys['ArrowRight']) {
+            } else if (keys['d']) {
                 marioX += 2.5;
                 stick.style.transform = "rotate(20deg)";
             }
@@ -589,12 +590,11 @@
             if (marioX < 0) marioX = 0;
             if (marioX > 484) marioX = 484;
 
-            // Apply slightly adjusted gravity values
             marioVy += 0.45; 
             marioY += marioVy;
 
-            // FIX: Snappy vertical velocity boost
-            if (keys['ArrowUp'] && !marioIsJumping) {
+            // WASD UPDATE: "w" triggers the jump
+            if (keys['w'] && !marioIsJumping) {
                 marioVy = -8.5; 
                 marioIsJumping = true;
             }
@@ -604,7 +604,6 @@
 
             for (let p of platforms) {
                 if (marioX + 16 > p.x && marioX < p.x + p.w) {
-                    // Check if foot line lands on the platform surface boundary
                     if (currentFootY >= p.y && currentFootY - marioVy <= p.y + 12) {
                         marioY = p.y - 24;
                         marioVy = 0;
@@ -615,7 +614,6 @@
                 }
             }
 
-            // Fallback safety to keep player from falling off screen floor entirely
             if (marioY > 480) {
                 marioX = 30;
                 marioY = 460 - 24;
